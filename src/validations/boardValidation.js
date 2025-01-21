@@ -1,8 +1,3 @@
-/**
- * Updated by trungquandev.com's author on August 17 2023
- * YouTube: https://youtube.com/@trungquandev
- * "A bit of fragrance clings to the hand that gives flowers!"
- */
 import Joi from 'joi'
 import { StatusCodes } from 'http-status-codes'
 
@@ -20,11 +15,7 @@ const createNew = async (req, res, next) => {
 
   try {
     await correctCondition.validateAsync(req.body, { abortEarly: false })
-
-    // next()
-    res.status(StatusCodes.CREATED).json({
-      message: 'POST: API CREATED new list boards'
-    })
+    next()
   } catch (error) {
     res.status(StatusCodes.UNPROCESSABLE_ENTITY).json({
       errors: new Error(error).message
