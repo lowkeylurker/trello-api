@@ -22,7 +22,7 @@ const START_SERVER = () => {
   })
 
   app.listen(port, hostname, () => {
-    console.log(`Hello Trung Quan Dev, I am running at ${ hostname }:${ port }`)
+    console.log(`Hello Levion, I am running at ${ hostname }:${ port }`)
   })
 
   exitHook(() => CLOSE_DB())
