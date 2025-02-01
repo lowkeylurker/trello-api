@@ -11,9 +11,6 @@ import { errorHandlingMiddleware } from '~/middlewares/errorHandlingMiddleware'
 const START_SERVER = () => {
   const app = express()
 
-  const hostname = env.APP_HOST
-  const port = env.APP_PORT
-
   app.use(express.json())
 
   app.use(cors())
@@ -23,15 +20,15 @@ const START_SERVER = () => {
   // Middleware error handling
   app.use(errorHandlingMiddleware)
 
-  app.get('/', async (req, res) => {
-    console.log(env)
-    res.end('<h1>Hello World!</h1><hr>')
-  })
-
-  app.listen(port, hostname, () => {
-    console.log(`Hello Levion, I am running at ${ hostname }:${ port }`)
-  })
-
+  if (env.BUILD_MODE === 'production') {
+    app.listen(process.env.PORT, process.env.HOST, () => {
+      console.log(`Hello Levion, I am running on Render at port:${ process.env.PORT }`)
+    })
+  } else {
+    app.listen(env.LOCAL_DEV_APP_PORT, env.LOCAL_DEV_APP_HOST, () => {
+      console.log(`Hello Levion, I am running at ${ env.LOCAL_DEV_APP_HOST }:${ env.LOCAL_DEV_APP_PORT }`)
+    })
+  }
   exitHook(() => CLOSE_DB())
 }
 
