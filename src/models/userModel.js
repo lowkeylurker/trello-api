@@ -40,14 +40,14 @@ const createdNew = async (data) => {
   } catch (error) { throw new Error(error) }
 }
 
-const fineOneById = async (userId) => {
+const findOneById = async (userId) => {
   try {
     const result = await GET_DB().collection(USER_COLLECTION_NAME).findOne({ _id: new ObjectId(userId) })
     return result
   } catch (error) { throw new Error(error) }
 }
 
-const fineOneByEmail = async (emailValue) => {
+const findOneByEmail = async (emailValue) => {
   try {
     const result = await GET_DB().collection(USER_COLLECTION_NAME).findOne({ email: emailValue })
     return result
@@ -61,7 +61,7 @@ const update = async (userId, updateData) => {
         delete updateData[fieldName]
       }
     })
-    const result = await GET_DB().collection(USER_COLLECTION_NAME).fineOneAndUpdate(
+    const result = await GET_DB().collection(USER_COLLECTION_NAME).findOneAndUpdate(
       { _id: new ObjectId(userId) },
       { $set: updateData },
       { returnDocument: 'after' }
@@ -75,7 +75,7 @@ export const userModel = {
   USER_COLLECTION_SCHEMA,
   USER_ROLES,
   createdNew,
-  fineOneById,
-  fineOneByEmail,
+  findOneById,
+  findOneByEmail,
   update
 }
