@@ -1,6 +1,7 @@
 import { StatusCodes } from 'http-status-codes'
 import { userService } from '~/services/userService'
 import ms from 'ms'
+import ApiError from '~/utils/ApiError'
 
 const createNew = async (req, res, next) => {
   try {
@@ -39,8 +40,34 @@ const login = async (req, res, next) => {
   } catch (error) { next(error) }
 }
 
+const logout = async (req, res, next) => {
+  try {
+    // Xóa cookie
+    res.clearCookie('accessToken')
+    res.clearCookie('refreshToken')
+
+    res.status(StatusCodes.OK).json({ loggedOut: true })
+  } catch (error) { next(error) }
+}
+
+const refreshToken = async (req, res, next) => {
+  try {
+    const result = await userService.refreshToken(req.cookies?.refreshToken)
+    res.cookie('accessToken', result.accessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      maxAge: ms('14 days')
+    })
+  } catch (error) {
+    next(new ApiError(StatusCodes.UNAUTHORIZED, 'Please Sign In! (Error from refresh Token)'))
+  }
+}
+
 export const userController = {
   createNew,
   verifyAccount,
-  login
+  login,
+  logout,
+  refreshToken
 }

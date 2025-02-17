@@ -13,7 +13,7 @@ import { env } from '~/config/environment'
 const createNew = async (reqBody) => {
   try {
     // Kiểm tra xem email đã tồn tại trong hệ thống của chúng ta hay chưa
-    const existUser = await userModel.fineOneByEmail(reqBody.email)
+    const existUser = await userModel.findOneByEmail(reqBody.email)
     if (existUser) {
       throw new ApiError(StatusCodes.CONFLICT, 'Email already exists!')
     }
@@ -30,7 +30,7 @@ const createNew = async (reqBody) => {
 
     // Thực hiện lưu thông tin user vào db
     const createdUser = await userModel.createdNew(newUser)
-    const getNewUser = await userModel.fineOneById(createdUser.insertedId)
+    const getNewUser = await userModel.findOneById(createdUser.insertedId)
 
     // Gửi email cho người dùng xác thực tài khoản
     const verificationLink = `${WEBSITE_DOMAIN}/account/verification?email=${getNewUser.email}&token=${getNewUser.verifyToken}`
@@ -107,8 +107,34 @@ const login = async (reqBody) => {
   } catch (error) { throw error }
 }
 
+const refreshToken = async (clientRefreshToken) => {
+  try {
+    // Verify / giải mã refreshToken có hợp lệ không
+    const refresTokenDecoded = await JwtProvider.verifyToken(
+      clientRefreshToken,
+      env.REFRESH_TOKEN_SECRET_SIGNATURE
+    )
+
+    // Đoạn này vì ta chỉ lưu những thông tin unique và cố định của user trong token rồi, vì vậy có thể lấy luôn từ decoded ra, tiết kiệm query tới DB
+    const userInfo = {
+      _id: refresTokenDecoded._id,
+      email: refresTokenDecoded.email
+    }
+
+    // Tạo accessToken mới
+    const accessToken = await JwtProvider.generateToken(
+      userInfo,
+      env.ACCESS_TOKEN_SECRET_SIGNATURE,
+      env.ACCESS_TOKEN_LIFE
+    )
+
+    return { accessToken }
+  } catch (error) { throw error }
+}
+
 export const userService = {
   createNew,
   verifyAccount,
-  login
+  login,
+  refreshToken
 }
