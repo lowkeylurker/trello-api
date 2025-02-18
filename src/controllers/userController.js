@@ -59,9 +59,18 @@ const refreshToken = async (req, res, next) => {
       sameSite: 'none',
       maxAge: ms('14 days')
     })
+    res.status(StatusCodes.OK).json({ accessToken: result.accessToken })
   } catch (error) {
     next(new ApiError(StatusCodes.UNAUTHORIZED, 'Please Sign In! (Error from refresh Token)'))
   }
+}
+
+const update = async (req, res, next) => {
+  try {
+    const userId = req?.jwtDecoded._id
+    const updatedUser = await userService.update(userId, req.body)
+    res.status(StatusCodes.OK).json(updatedUser)
+  } catch (error) { next(error) }
 }
 
 export const userController = {
@@ -69,5 +78,6 @@ export const userController = {
   verifyAccount,
   login,
   logout,
-  refreshToken
+  refreshToken,
+  update
 }
