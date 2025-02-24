@@ -7,6 +7,24 @@ import ApiError from '~/utils/ApiError'
 import { BOARD_INVITATION_STATUS, INVITATION_TYPES } from '~/utils/constants'
 import { pickUser } from '~/utils/formatters'
 
+const getInvitations = async (userId) => {
+  try {
+    const getInvitations = await invitationModel.findByUser(userId)
+
+    // Vì các dữ liệu inviter, invitee và board là đang ở giá trị mảng 1 phần tử nếu lấy ra được, nên chúng ta biến đổi nó về JSON Object trước khi trả về cho phía FE
+    const resInvitations = getInvitations.map(i => {
+      return {
+        ...i,
+        board: i.board[0] || {},
+        invitee: i.invitee[0] || {},
+        inviter: i.inviter[0] || {}
+      }
+    })
+
+    return resInvitations
+  } catch (error) { throw error }
+}
+
 const createNewBoardInvitation = async (reqBody, inviterId) => {
   try {
     // Người đi mời: chính là người đang request, nên chúng ta tìm theo id lấy từ token
@@ -48,5 +66,6 @@ const createNewBoardInvitation = async (reqBody, inviterId) => {
 }
 
 export const invitationService = {
-  createNewBoardInvitation
+  createNewBoardInvitation,
+  getInvitations
 }
