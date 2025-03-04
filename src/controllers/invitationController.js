@@ -12,7 +12,6 @@ const getInvitations = async (req, res, next) => {
 
 const createNewBoardInvitation = async (req, res, next) => {
   try {
-    // User thực hiện request này chính ta Inviter - người đi mời
     const inviterId = req.jwtDecoded._id
     const resInvitation = await invitationService.createNewBoardInvitation(req.body, inviterId)
 

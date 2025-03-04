@@ -12,7 +12,7 @@ const INVITATION_COLLECTION_SCHEMA = Joi.object({
   inviteeId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
   type: Joi.string().required().valid(...Object.values(INVITATION_TYPES)),
 
-  // Lời mời là board thì sẽ lưu thêm dữ liệu boardInvitation - optional
+
   boardInvitation: Joi.object({
     boardId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
     status: Joi.string().required().valid(...Object.values(BOARD_INVITATION_STATUS))
@@ -23,7 +23,6 @@ const INVITATION_COLLECTION_SCHEMA = Joi.object({
   _destroy: Joi.boolean().default(false)
 })
 
-// Chỉ định ra những Fields mà chúng ta không muốn cho phép cập nhật trong hàm update()
 const INVALID_UPDATE_FIELDS = ['_id', 'inviterId', 'inviteeId', 'type', 'createdAt']
 
 const validateBeforeCreate = async (data) => {
@@ -34,14 +33,12 @@ const createNewBoardInvitation = async (data) => {
   try {
     const validData = await validateBeforeCreate(data)
 
-    // Biến đổi một số dữ liệu liên quan tới ObjectId chuẩn chỉnh
     let newInvitationToAdd = {
       ...validData,
       inviterId: new ObjectId(validData.inviterId),
       inviteeId: new ObjectId(validData.inviteeId)
     }
 
-    // Nếu tồn tại dữ liệu boardInvitation thì update cho cái boardId
     if (validData.boardInvitation) {
       newInvitationToAdd.boardInvitation = {
         ...validData.boardInvitation,
@@ -49,7 +46,6 @@ const createNewBoardInvitation = async (data) => {
       }
     }
 
-    // Gọi insert vào DB
     const createdInvitation = await GET_DB().collection(INVITATION_COLLECTION_NAME).insertOne(newInvitationToAdd)
     return createdInvitation
   } catch (error) { throw new Error(error) }
@@ -63,14 +59,12 @@ const findOneById = async (invitationId) => {
 }
 const update = async (invitationId, updateData) => {
   try {
-    // Lọc những field mà chúng ta không cho phép cập nhật linh tinh
     Object.keys(updateData).forEach(fieldName => {
       if (INVALID_UPDATE_FIELDS.includes(fieldName)) {
         delete updateData[fieldName]
       }
     })
 
-    // Đối với những dữ liệu liên quan ObjectId, biến đổi ở đây
     if (updateData.boardInvitation) {
       updateData.boardInvitation = {
         ...updateData.boardInvitation,
@@ -88,32 +82,31 @@ const update = async (invitationId, updateData) => {
   } catch (error) { throw new Error(error) }
 }
 
-// Query tổng hợp (aggregate) để lấy những bản ghi invitation thuộc về 1 user cụ thể.
 const findByUser = async (userId) => {
   try {
     const queryConditions = [
-      { inviteeId: new ObjectId(userId) }, // Tìm theo inviteeId - người được mời - chính là người đang thực hiện request này vì người được mời sẽ nhận notification mời
+      { inviteeId: new ObjectId(userId) },
       { _destroy: false }
     ]
     const results = await GET_DB().collection(INVITATION_COLLECTION_NAME).aggregate([
       { $match: { $and: queryConditions } },
       { $lookup: {
         from: userModel.USER_COLLECTION_NAME,
-        localField: 'inviterId', // Người đi mời
+        localField: 'inviterId',
         foreignField: '_id',
         as: 'inviter',
         pipeline: [{ $project: { 'password': 0, 'verifyToken': 0 } }]
       } },
       { $lookup: {
         from: userModel.USER_COLLECTION_NAME,
-        localField: 'inviteeId', // Người được mời
+        localField: 'inviteeId',
         foreignField: '_id',
         as: 'invitee',
         pipeline: [{ $project: { 'password': 0, 'verifyToken': 0 } }]
       } },
       { $lookup: {
         from: boardModel.BOARD_COLLECTION_NAME,
-        localField: 'boardInvitation.boardId', // Thông tin của board
+        localField: 'boardInvitation.boardId',
         foreignField: '_id',
         as: 'board'
       } }

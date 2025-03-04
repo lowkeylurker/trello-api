@@ -69,7 +69,6 @@ const moveCardToDifferentColumn = async (reqBody) => {
 
 const getBoards = async (userId, page, itemsPerPage, queryFilters) => {
   try {
-    // Nếu không tồn tại page hoặc itemsPerPage từ phía FE thì BE sẽ cần phải luôn gán giá trị mặc định
     if (!page) page = DEFAULT_PAGE
     if (!itemsPerPage) itemsPerPage = DEFAULT_ITEMS_PER_PAGE
 

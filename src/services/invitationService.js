@@ -11,7 +11,6 @@ const getInvitations = async (userId) => {
   try {
     const getInvitations = await invitationModel.findByUser(userId)
 
-    // Vì các dữ liệu inviter, invitee và board là đang ở giá trị mảng 1 phần tử nếu lấy ra được, nên chúng ta biến đổi nó về JSON Object trước khi trả về cho phía FE
     const resInvitations = getInvitations.map(i => {
       return {
         ...i,
@@ -27,35 +26,27 @@ const getInvitations = async (userId) => {
 
 const createNewBoardInvitation = async (reqBody, inviterId) => {
   try {
-    // Người đi mời: chính là người đang request, nên chúng ta tìm theo id lấy từ token
     const inviter = await userModel.findOneById(inviterId)
-    // Người được mời: lấy theo email nhận từ phía FE
     const invitee = await userModel.findOneByEmail(reqBody.inviteeEmail)
-    // Tìm luôn board ra để lấy data xử lý
     const board = await boardModel.findOneById(reqBody.boardId)
 
-    // Nếu không tồn tại 1 trong 3 thì cứ thẳng tay reject
     if (!invitee || !inviter || !board) {
       throw new ApiError(StatusCodes.NOT_FOUND, 'Inviter, Invitee or Board not found!')
     }
 
-    // Tạo data cần thiết để lưu vào trong DB
-    // Có thể thử bỏ hoặc làm sai lệch type, boardInvitation, status để test xem Model validate ok chưa
     const newInvitationData = {
       inviterId,
-      inviteeId: invitee._id.toString(), // chuyển từ ObjectId về String vì sang bên Model có check lại data ở hàm create
+      inviteeId: invitee._id.toString(),
       type: INVITATION_TYPES.BOARD_INVITATION,
       boardInvitation: {
         boardId: board._id.toString(),
-        status: BOARD_INVITATION_STATUS.PENDING // Default ban đầu trạng thái sẽ là Pending
+        status: BOARD_INVITATION_STATUS.PENDING
       }
     }
 
-    // Gọi sang Model để lưu vào DB
     const createdInvitation = await invitationModel.createNewBoardInvitation(newInvitationData)
     const getInvitation = await invitationModel.findOneById(createdInvitation.insertedId.toString())
 
-    // Ngoài thông tin của board invitation mới tạo thì trả về đủ cả luôn board, inviter, invitee cho FE thoải mái xử lý
     const resInvitation = {
       ...getInvitation,
       board,
@@ -67,34 +58,27 @@ const createNewBoardInvitation = async (reqBody, inviterId) => {
 
 const updateBoardInvitation = async (userId, invitationId, status) => {
   try {
-    // Tìm bản ghi invitation trong model
     const getInvitation = await invitationModel.findOneById(invitationId)
     if (!getInvitation) throw new ApiError(StatusCodes.NOT_FOUND, 'Invitation not found!')
 
-    // Sau khi có Invitation rồi thì lấy full thông tin của board
     const boardId = getInvitation.boardInvitation.boardId
     const getBoard = await boardModel.findOneById(boardId)
     if (!getBoard) throw new ApiError(StatusCodes.NOT_FOUND, 'Board not found!')
 
-    // Kiểm tra xem nếu status là ACCEPTED join board mà user (invitee) đã là owner hoặc member của board rồi thì trả về thông báo lỗi luôn
-    // Note: 2 mảng memberIds và ownerIds của board nó đang là kiểu dữ liệu ObjectId nên cho nó về String hết luôn để check
     const boardOwnerAndMemberIds = [...getBoard.ownerIds, ...getBoard.memberIds].toString()
     if (status === BOARD_INVITATION_STATUS.ACCEPTED && boardOwnerAndMemberIds.includes(userId)) {
       throw new ApiError(StatusCodes.NOT_ACCEPTABLE, 'You are already a member of this board!')
     }
 
-    // Tạo dữ liệu để update bản ghi Invitation
     const updateData = {
       boardInvitation: {
         ...getInvitation.boardInvitation,
-        status: status // status là Accepted hoặc Rejected do FE gửi lên
+        status: status
       }
     }
 
-    // Bước 1: Cập nhật status trong bản ghi Invitation
     const updatedInvitation = await invitationModel.update(invitationId, updateData)
 
-    // Bước 2: Nếu trường hợp Accept 1 lời mời thành công, cần phải thêm thông tin của user (userId) vào bản ghi memberIds trong collection board.
     if (updatedInvitation.boardInvitation.status === BOARD_INVITATION_STATUS.ACCEPTED) {
       await boardModel.pushMemberIds(boardId, userId)
     }

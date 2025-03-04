@@ -21,7 +21,6 @@ const login = async (req, res, next) => {
   try {
     const result = await userService.login(req.body)
 
-    // Xử lý trả về HttpOnly Cookie cho phía trình duyệt
     res.cookie('accessToken', result.accessToken, {
       httpOnly: true,
       secure: true,
@@ -42,7 +41,6 @@ const login = async (req, res, next) => {
 
 const logout = async (req, res, next) => {
   try {
-    // Xóa cookie
     res.clearCookie('accessToken')
     res.clearCookie('refreshToken')
 

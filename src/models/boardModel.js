@@ -8,7 +8,6 @@ import { cardModel } from './cardModel'
 import { pagingSkipValue } from '~/utils/algorithms'
 import { userModel } from './userModel'
 
-// Define Collection (Name & Schema)
 const BOARD_COLLECTION_NAME = 'boards'
 const BOARD_COLLECTION_SCHEMA = Joi.object({
   title: Joi.string().required().min(3).max(50).trim().strict(),
@@ -21,12 +20,11 @@ const BOARD_COLLECTION_SCHEMA = Joi.object({
     Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)
   ).default([]),
 
-  // Những Admin của board
   ownerIds: Joi.array().items(
     Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)
   ).default([]),
 
-  // Những thành viên của board
+
   memberIds: Joi.array().items(
     Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)
   ).default([]),
@@ -91,8 +89,6 @@ const getDetails = async (userId, boardId) => {
         localField: 'ownerIds',
         foreignField: '_id',
         as: 'owners',
-        // pipeline trong lookup là để xử lý một hoặc nhiều luồng cần thiết
-        // $project để chỉ định vài field không muốn lấy về bằng cách gán nó giá trị 0
         pipeline: [{ $project: { 'password': 0, 'verifyToken': 0 } }]
       } },
       { $lookup: {
@@ -152,23 +148,15 @@ const update = async (boardId, updateData) => {
 const getBoards = async (userId, page, itemsPerPage, queryFilters) => {
   try {
     const queryConditions = [
-      // Điều kiện 01: Board chưa bị xóa
       { _destroy: false },
-      // Điều kiện 02: userId thuộc 1 trong 2 mảng ownerIds hoặc memberIds, sử dụng toán tử $all của mongodb
       { $or: [
-        // $all lấy những documents mà field đang xét là 1 array chứa những phần tử được liệt kê
         { ownerIds: { $all: [new ObjectId(userId)] } },
         { memberIds: { $all: [new ObjectId(userId)] } }
       ] }
     ]
 
-    // Xử lý query filter cho từng trường hợp search board, ví dụ search theo title
     if (queryFilters) {
       Object.keys(queryFilters).forEach(key => {
-        // Có phân biệt chữ hoa, chữ thường
-        // queryConditions.push({ [key]: { $regex: queryFilters[key] } })
-
-        // Không phân biệt chữ hoa, chữ thường
         queryConditions.push({ [key]: { $regex: new RegExp(queryFilters[key], 'i') } })
       })
     }
@@ -176,20 +164,15 @@ const getBoards = async (userId, page, itemsPerPage, queryFilters) => {
     const query = await GET_DB().collection(BOARD_COLLECTION_NAME).aggregate(
       [
         { $match: { $and: queryConditions } },
-        // $sort title của board theo thứ tự ASCII
         { $sort: { title: 1 } },
-        // $facet để xử lý nhiều luồng trong 1 query
         { $facet: {
-        // Luồng 1: Query boards
           'queryBoards': [
-            { $skip: pagingSkipValue(page, itemsPerPage) }, // Bỏ qua số lượng bản ghi của những page trước đó
-            { $limit: itemsPerPage } // Giới hạn tối đa số lượng bản ghi trả về trên 1 page
+            { $skip: pagingSkipValue(page, itemsPerPage) },
+            { $limit: itemsPerPage }
           ],
-          // Luồng 2: Query đến tổng tất cả số lượng bản ghi boards trong DB và trả về vào biến countedAllBoards.
           'queryTotalBoards': [{ $count: 'countedAllBoards' }]
         } }
       ],
-      // Khai báo thêm thuộc tính collation locale 'en' để fix vụ chữ 'B' đứng trước 'a' khi sort theo thứ tự ASCII
       { collation: { locale: 'en' } }
     ).toArray()
 
