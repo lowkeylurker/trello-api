@@ -3,7 +3,6 @@ import { ObjectId } from 'mongodb'
 import { GET_DB } from '~/config/mongodb'
 import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
 
-// Define Collection (name & schema)
 const COLUMN_COLLECTION_NAME = 'columns'
 const COLUMN_COLLECTION_SCHEMA = Joi.object({
   boardId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),

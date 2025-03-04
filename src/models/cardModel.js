@@ -4,7 +4,6 @@ import { GET_DB } from '~/config/mongodb'
 import { CARD_MEMBER_ACTIONS } from '~/utils/constants'
 import { EMAIL_RULE, EMAIL_RULE_MESSAGE, OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
 
-// Define Collection (name & schema)
 const CARD_COLLECTION_NAME = 'cards'
 const CARD_COLLECTION_SCHEMA = Joi.object({
   boardId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
@@ -17,14 +16,14 @@ const CARD_COLLECTION_SCHEMA = Joi.object({
   memberIds: Joi.array().items(
     Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)
   ).default([]),
-  // Dữ liệu comments của Card chúng ta sẽ học cách nhúng - embedded vào bản ghi Card luôn như dưới đây
+
   comments: Joi.array().items({
     userId: Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
     userEmail: Joi.string().pattern(EMAIL_RULE).message(EMAIL_RULE_MESSAGE),
     userAvatar: Joi.string(),
     userDisplayName: Joi.string(),
     content: Joi.string(),
-    // Chỗ này lưu ý vì dùng hàm $push để thêm comment nên không set default Date.now luôn giống hàm insertOne khi create được
+
     commentedAt: Joi.date().timestamp()
   }).default([]),
 
@@ -85,13 +84,6 @@ const deleteManyByColumnId = async (columnId) => {
   } catch (error) { throw new Error(error) }
 }
 
-/**
- * Đẩy 1 phần tử comment vào đầu mảng comments!
- * - Trong JS, ngược lại với push sẽ là unshift.
- * - Nhưng trong MongoDB hiện tại chỉ có $push - mặc định đẩy vào phần tử cuối mảng.
- * Dĩ nhiên cứ luw comment mới vào cuối mảng cũng được, nhưng nay sẽ học cách để thêm phần tử vào đầu mảng trong mongodb.
- * Vẫn dũng $push, nhưng bọc data vào Array để trong $each và chỉ định $position: 0
- */
 const unshiftNewComment = async (cardId, commentData) => {
   try {
     const result = await GET_DB().collection(CARD_COLLECTION_NAME).findOneAndUpdate(
@@ -105,7 +97,6 @@ const unshiftNewComment = async (cardId, commentData) => {
 
 const updateMembers = async (cardId, incomingMemberInfo) => {
   try {
-    // Tạo ra 1 biến updateCondition ban đầu là rỗng
     let updateCondition = {}
     if (incomingMemberInfo.action === CARD_MEMBER_ACTIONS.ADD) {
       updateCondition = { $push: { memberIds: new ObjectId(incomingMemberInfo.userId) } }
